@@ -1,0 +1,26 @@
+# --- Entorno virtual (cada quien crea el suyo con requirements.txt) ---
+venv/
+.venv/
+env/
+
+# --- Archivos generados por Python ---
+__pycache__/
+*.py[cod]
+
+# --- Cachés de herramientas ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Salidas generadas por el proyecto (imágenes del grafo, etc.) ---
+output/
+*.png
+*.svg
+
+# --- Archivos del editor / sistema operativo ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
