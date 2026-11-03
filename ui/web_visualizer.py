@@ -211,6 +211,31 @@ def construir_html_interactivo(
       background: linear-gradient(135deg, #4ade80, #16a34a);
       border: 2px solid #86efac;
     }}
+    /* Modo manual: fichas clicables */
+    .frog.clickable {{
+      cursor: pointer;
+    }}
+    .frog.clickable:hover {{
+      transform: scale(1.08);
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.6), 0 8px 16px rgba(0,0,0,0.4);
+    }}
+    .frog.shake {{
+      animation: shake 0.4s ease;
+    }}
+    .slot.empty {{
+      background: #0b1729;
+      box-shadow: inset 0 0 0 2px var(--accent-blue);
+    }}
+    .manual-status {{
+      font-size: 0.85rem;
+      color: var(--accent-gold);
+      font-weight: 600;
+    }}
+    @keyframes shake {{
+      0%, 100% {{ transform: translateX(0); }}
+      20%, 60% {{ transform: translateX(-6px); }}
+      40%, 80% {{ transform: translateX(6px); }}
+    }}
     /* Narrativa de movimiento */
     .narrative-box {{
       text-align: center;
@@ -244,6 +269,13 @@ def construir_html_interactivo(
       justify-content: center;
       align-items: center;
       margin-top: 1.5rem;
+    }}
+    .control-group {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      align-items: center;
     }}
     button.btn {{
       background: #334155;
@@ -420,23 +452,32 @@ def construir_html_interactivo(
 
       <!-- Controles -->
       <div class="controls">
-        <button id="btn-start" class="btn primary" onclick="togglePlay()">
-          <span id="play-text">Iniciar Animación</span>
-        </button>
-        <button id="btn-prev" class="btn" onclick="stepPrev()" disabled>Anterior</button>
-        <button id="btn-next" class="btn" onclick="stepNext()">Siguiente</button>
-        <button id="btn-reset" class="btn" onclick="resetState()">Reiniciar</button>
+        <div id="controls-auto" class="control-group">
+          <button id="btn-start" class="btn primary" onclick="togglePlay()">
+            <span id="play-text">Iniciar Animación</span>
+          </button>
+          <button id="btn-prev" class="btn" onclick="stepPrev()" disabled>Anterior</button>
+          <button id="btn-next" class="btn" onclick="stepNext()">Siguiente</button>
+          <button id="btn-reset" class="btn" onclick="resetState()">Reiniciar</button>
 
-        <div class="speed-control">
-          <label for="speed-range">Velocidad:</label>
-          <input type="range" id="speed-range" min="200" max="1500" step="100" value="700" onchange="updateSpeed()">
+          <div class="speed-control">
+            <label for="speed-range">Velocidad:</label>
+            <input type="range" id="speed-range" min="200" max="1500" step="100" value="700" onchange="updateSpeed()">
+          </div>
         </div>
+
+        <div id="controls-manual" class="control-group" style="display:none;">
+          <button id="btn-manual-reset" class="btn" onclick="reiniciarManual()">Reiniciar Juego</button>
+          <span class="manual-status">Movimientos: <span id="manual-moves">0</span> / Óptimo: <span id="manual-optimal">15</span></span>
+        </div>
+
+        <button id="btn-manual-toggle" class="btn primary" onclick="toggleModoManual()">Jugar (Modo Manual)</button>
       </div>
 
       <!-- Panel de Resultados Final -->
       <div id="results-panel" class="results-panel">
         <div class="results-header">
-          <span>Solución Óptima Encontrada y Verificada</span>
+          <span id="results-title">Solución Óptima Encontrada y Verificada</span>
           <button class="btn" onclick="switchTab('tree')" style="font-size:0.85rem; padding:0.4rem 0.8rem;">
             Ver Árbol de Navegación
           </button>
@@ -496,6 +537,10 @@ def construir_html_interactivo(
     let playTimer = null;
     let speedMs = 700;
 
+    let modoManual = false;
+    let estadoManual = DATA.metricas.estado_inicial;
+    let movimientosUsuario = 0;
+
     const board = document.getElementById('board');
     const stepIndicator = document.getElementById('step-indicator');
     const moveDescription = document.getElementById('move-description');
@@ -527,8 +572,7 @@ def construir_html_interactivo(
       img.classList.toggle('zoomed');
     }}
 
-    function renderBoard(step) {{
-      const state = DATA.ruta[step];
+    function pintarTablero(state, clickable) {{
       board.innerHTML = '';
 
       for (let i = 0; i < state.length; i++) {{
@@ -541,19 +585,25 @@ def construir_html_interactivo(
         idx.innerText = `[${{i}}]`;
         slot.appendChild(idx);
 
-        if (char === 'R') {{
+        if (char === 'R' || char === 'V') {{
           const frog = document.createElement('div');
-          frog.className = 'frog red';
-          frog.innerText = 'R';
+          frog.className = 'frog ' + (char === 'R' ? 'red' : 'green');
+          frog.innerText = char;
+          if (clickable) {{
+            frog.classList.add('clickable');
+            frog.onclick = function () {{ intentarMover(i, this); }};
+          }}
           slot.appendChild(frog);
-        }} else if (char === 'V') {{
-          const frog = document.createElement('div');
-          frog.className = 'frog green';
-          frog.innerText = 'V';
-          slot.appendChild(frog);
+        }} else {{
+          slot.classList.add('empty');
         }}
         board.appendChild(slot);
       }}
+    }}
+
+    function renderBoard(step) {{
+      const state = DATA.ruta[step];
+      pintarTablero(state, false);
 
       stepIndicator.innerText = `Paso ${{step}} de ${{DATA.metricas.longitud}}`;
       if (step === 0) {{
@@ -570,6 +620,7 @@ def construir_html_interactivo(
 
       if (step === DATA.ruta.length - 1) {{
         resultsPanel.classList.add('visible');
+        document.getElementById('results-title').innerText = 'Solución Óptima Encontrada y Verificada';
         document.getElementById('stat-moves').innerText = DATA.metricas.longitud;
         document.getElementById('stat-explored').innerText = `${{DATA.metricas.nodos_explorados}} / ${{DATA.metricas.nodos_descubiertos}}`;
         document.getElementById('stat-time').innerText = `${{DATA.metricas.tiempo_ms}} ms`;
@@ -638,6 +689,93 @@ def construir_html_interactivo(
         pause();
         play();
       }}
+    }}
+
+    function toggleModoManual() {{
+      modoManual = !modoManual;
+      pause();
+      const controlsAuto = document.getElementById('controls-auto');
+      const controlsManual = document.getElementById('controls-manual');
+      const btnToggle = document.getElementById('btn-manual-toggle');
+
+      if (modoManual) {{
+        controlsAuto.style.display = 'none';
+        controlsManual.style.display = 'flex';
+        btnToggle.innerText = 'Volver a Animación';
+        reiniciarManual();
+      }} else {{
+        controlsAuto.style.display = 'flex';
+        controlsManual.style.display = 'none';
+        btnToggle.innerText = 'Jugar (Modo Manual)';
+        resetState();
+      }}
+    }}
+
+    function reiniciarManual() {{
+      estadoManual = DATA.metricas.estado_inicial;
+      movimientosUsuario = 0;
+      document.getElementById('manual-moves').innerText = '0';
+      document.getElementById('manual-optimal').innerText = DATA.metricas.longitud;
+      resultsPanel.classList.remove('visible');
+      stepIndicator.innerText = 'Modo Manual - Paso 0';
+      moveDescription.innerHTML = 'Haz clic en una ficha junto al espacio vacío para moverla.';
+      pintarTablero(estadoManual, true);
+    }}
+
+    function intentarMover(indice, elemento) {{
+      const estado = estadoManual;
+      const hueco = estado.indexOf('_');
+      const ficha = estado[indice];
+      let valido = false;
+      let tipo = 'avanzar';
+
+      if (ficha === 'R') {{
+        if (indice === hueco - 1) {{ valido = true; tipo = 'avanzar'; }}
+        else if (indice === hueco - 2 && estado[hueco - 1] === 'V') {{ valido = true; tipo = 'saltar'; }}
+      }} else if (ficha === 'V') {{
+        if (indice === hueco + 1) {{ valido = true; tipo = 'avanzar'; }}
+        else if (indice === hueco + 2 && estado[hueco + 1] === 'R') {{ valido = true; tipo = 'saltar'; }}
+      }}
+
+      if (!valido) {{
+        elemento.classList.add('shake');
+        setTimeout(() => elemento.classList.remove('shake'), 400);
+        moveDescription.innerHTML = 'Movimiento no válido. Las rojas solo avanzan o saltan hacia la derecha; las verdes hacia la izquierda.';
+        return;
+      }}
+
+      const casillas = estado.split('');
+      casillas[hueco] = ficha;
+      casillas[indice] = '_';
+      estadoManual = casillas.join('');
+      movimientosUsuario++;
+
+      document.getElementById('manual-moves').innerText = movimientosUsuario;
+      pintarTablero(estadoManual, true);
+
+      const color = ficha === 'R' ? 'Roja' : 'Verde';
+      const accion = tipo === 'saltar' ? 'SALTÓ' : 'AVANZÓ';
+      stepIndicator.innerText = `Modo Manual - Movimiento ${{movimientosUsuario}}`;
+      moveDescription.innerHTML = `Rana <strong>${{color}}</strong> ${{accion}} desde casilla [${{indice}}] hacia casilla [${{hueco}}].`;
+
+      if (estadoManual === DATA.metricas.estado_meta) {{
+        mostrarVictoria();
+      }}
+    }}
+
+    function mostrarVictoria() {{
+      resultsPanel.classList.add('visible');
+      const titulo = document.getElementById('results-title');
+      if (movimientosUsuario <= DATA.metricas.longitud) {{
+        titulo.innerText = `¡Resuelto en ${{movimientosUsuario}} movimientos (¡óptimo!)`;
+      }} else {{
+        titulo.innerText = `¡Resuelto! Usaste ${{movimientosUsuario}} movimientos (óptimo: ${{DATA.metricas.longitud}})`;
+      }}
+      document.getElementById('stat-moves').innerText = `${{movimientosUsuario}} / ${{DATA.metricas.longitud}}`;
+      document.getElementById('stat-explored').innerText = `${{DATA.metricas.nodos_explorados}} / ${{DATA.metricas.nodos_descubiertos}}`;
+      document.getElementById('stat-time').innerText = `${{DATA.metricas.tiempo_ms}} ms`;
+      stepIndicator.innerText = 'Modo Manual - ¡Completado!';
+      moveDescription.innerHTML = '<strong>¡Felicidades!</strong> Todas las ranas cruzaron al lado opuesto.';
     }}
 
     renderBoard(0);
