@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import json
 from pathlib import Path
 
 import matplotlib
@@ -142,3 +143,41 @@ def exportar_grafo(
     plt.close(fig)
     return destino
 
+
+def exportar_metricas_json(
+    ruta_archivo: str | Path,
+    resultado: ResultadoBusqueda | None = None,
+    G: nx.DiGraph | None = None,
+) -> Path:
+    """Exporta las métricas consolidadas del problema y de la búsqueda en formato JSON."""
+    resultado = resultado or resolver_bfs()
+    G = G or construir_grafo()
+    categorias = clasificar_nodos(G, resultado)
+    conteo = Counter(categorias.values())
+
+    datos = {
+        "problema": "Salto de Ranas (Frogs Jumping Puzzle)",
+        "algoritmo": "Búsqueda en Anchura (BFS)",
+        "garantia": "Optimalidad y completitud para costos uniformes",
+        "estado_inicial": ESTADO_INICIAL,
+        "estado_meta": ESTADO_META,
+        "metricas_clave": {
+            "longitud_solucion_optima": resultado.longitud,
+            "estados_alcanzables": G.number_of_nodes(),
+            "espacio_teorico_permutaciones": 140,
+            "transiciones_aristas": G.number_of_edges(),
+            "nodos_explorados_bfs": resultado.nodos_explorados,
+            "nodos_descubiertos_bfs": resultado.nodos_descubiertos,
+            "estados_deadlock": conteo.get(DEADLOCK, 0),
+            "estados_condenados": conteo.get(CONDENADO, 0),
+            "estados_viables": conteo.get(VIABLE, 0),
+            "tiempo_calculo_ms": round(resultado.tiempo_ms, 4),
+        },
+        "ruta_optima": resultado.ruta,
+        "secuencia_movimientos": [str(m) for m in resultado.movimientos],
+    }
+
+    destino = Path(ruta_archivo)
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino.write_text(json.dumps(datos, indent=2, ensure_ascii=False), encoding="utf-8")
+    return destino

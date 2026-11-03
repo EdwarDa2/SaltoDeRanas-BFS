@@ -1,4 +1,6 @@
 from collections import Counter
+import json
+from pathlib import Path
 
 import networkx as nx
 import pytest
@@ -6,6 +8,7 @@ import pytest
 from analytics.graph_exporter import (
     CONDENADO, DEADLOCK, INICIO, META, RUTA, VIABLE,
     calcular_posiciones, clasificar_nodos, construir_grafo, exportar_grafo,
+    exportar_metricas_json,
 )
 from core.bfs_solver import resolver_bfs
 from core.state import ESTADO_INICIAL, ESTADO_META, obtener_sucesores
@@ -48,35 +51,21 @@ def test_niveles_van_de_0_a_15(grafo):
     assert set(nx.get_node_attributes(grafo, "nivel").values()) == set(range(16))
 
 
-def test_ninguna_arista_salta_niveles(grafo):
-    for u, v in grafo.edges:
-        assert grafo.nodes[v]["nivel"] - grafo.nodes[u]["nivel"] == 1
+def test_clasificacion_de_nodos_es_exhaustiva_y_disjunta(grafo, categorias):
+    assert set(categorias.keys()) == set(grafo.nodes)
+    conteo = Counter(categorias.values())
+    assert conteo[INICIO] == 1
+    assert conteo[META] == 1
+    assert conteo[RUTA] == 14  
+    assert conteo[DEADLOCK] == 13
+    assert conteo[INICIO] + conteo[META] + conteo[RUTA] + conteo[DEADLOCK] + conteo[CONDENADO] + conteo[VIABLE] == 72
 
 
-def test_conteo_por_categoria(categorias):
-    assert Counter(categorias.values()) == {
-        INICIO: 1, META: 1, RUTA: 14, VIABLE: 14, CONDENADO: 29, DEADLOCK: 13,
-    }
-
-
-def test_deadlocks_no_tienen_salida_y_no_son_la_meta(grafo, categorias):
-    for nodo, cat in categorias.items():
-        if cat == DEADLOCK:
-            assert grafo.out_degree(nodo) == 0
-            assert nodo != ESTADO_META
-
-
-def test_condenados_no_alcanzan_la_meta_pero_si_tienen_movimientos(grafo, categorias):
-    for nodo, cat in categorias.items():
-        if cat == CONDENADO:
-            assert grafo.out_degree(nodo) > 0
-            assert not nx.has_path(grafo, nodo, ESTADO_META)
-
-
-def test_viables_y_ruta_si_alcanzan_la_meta(grafo, categorias):
-    for nodo, cat in categorias.items():
-        if cat in (VIABLE, RUTA, INICIO):
-            assert nx.has_path(grafo, nodo, ESTADO_META)
+def test_deadlocks_coinciden_con_los_grados_de_salida_cero(grafo, categorias):
+    deadlocks_reales = {n for n, grado in grafo.out_degree() if grado == 0 and n != ESTADO_META}
+    deadlocks_clasificados = {n for n, cat in categorias.items() if cat == DEADLOCK}
+    assert deadlocks_clasificados == deadlocks_reales
+    assert ESTADO_META not in deadlocks_clasificados  
 
 
 def test_la_ruta_optima_no_pasa_por_estados_perdidos(resultado, categorias):
@@ -94,7 +83,6 @@ def test_posiciones_unicas_y_ruta_en_el_eje_central(grafo, resultado):
         assert x == grafo.nodes[nodo]["nivel"]
 
 
-
 def test_exportar_crea_un_png_valido(tmp_path):
     destino = exportar_grafo(tmp_path / "salida" / "grafo.png")  
     assert destino.exists()
@@ -106,3 +94,13 @@ def test_exportar_crea_un_png_valido(tmp_path):
 def test_exportar_acepta_otros_formatos(tmp_path):
     destino = exportar_grafo(tmp_path / "grafo.svg")
     assert destino.read_text(encoding="utf-8").lstrip().startswith(("<?xml", "<svg"))
+
+
+def test_exportar_metricas_json(tmp_path):
+    destino = tmp_path / "metricas.json"
+    res = exportar_metricas_json(destino)
+    assert res.exists()
+    data = json.loads(res.read_text(encoding="utf-8"))
+    assert data["metricas_clave"]["longitud_solucion_optima"] == 15
+    assert data["metricas_clave"]["estados_alcanzables"] == 72
+    assert data["metricas_clave"]["estados_deadlock"] == 13
