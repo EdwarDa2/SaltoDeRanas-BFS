@@ -14,7 +14,7 @@
     "estados_deadlock": 13,
     "estados_condenados": 29,
     "estados_viables": 14,
-    "tiempo_calculo_ms": 0.1436
+    "tiempo_calculo_ms": 0.1457
   },
   "ruta_optima": [
     "RRR_VVV",

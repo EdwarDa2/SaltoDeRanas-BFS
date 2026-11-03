@@ -109,7 +109,7 @@ def construir_html_interactivo(
       color: var(--text-muted);
       font-size: 1rem;
     }}
-    /* Barra de Pestañas */
+    /* Barra de Pestanas */
     .tab-bar {{
       display: flex;
       gap: 0.5rem;
@@ -330,7 +330,7 @@ def construir_html_interactivo(
       color: #f1f5f9;
       margin-top: 0.2rem;
     }}
-    /* Sección Árbol de Navegación */
+    /* Seccion Arbol de Navegacion */
     .tree-section {{
       display: flex;
       flex-direction: column;
@@ -397,18 +397,18 @@ def construir_html_interactivo(
     <p class="subtitle">Agente Inteligente con Búsqueda en Anchura (BFS)</p>
   </header>
 
-  <!-- Barra de pestañas -->
+  <!-- Barra de pestanas -->
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-btn-sim" onclick="switchTab('sim')">
-      <span>🐸</span> Animación del Rompecabezas
+      Animación del Rompecabezas
     </button>
     <button class="tab-btn" id="tab-btn-tree" onclick="switchTab('tree')">
-      <span>🌳</span> Árbol de Navegación BFS (72 Estados)
+      Árbol de Navegación BFS (72 Estados)
     </button>
   </div>
 
   <main class="main-container">
-    <!-- PESTAÑA 1: ANIMACIÓN DEL JUEGO -->
+    <!-- PESTANA 1: ANIMACION DEL JUEGO -->
     <div id="tab-sim" class="tab-content active">
       <div class="narrative-box">
         <div id="step-indicator" class="step-indicator">Paso 0 de 15</div>
@@ -421,11 +421,11 @@ def construir_html_interactivo(
       <!-- Controles -->
       <div class="controls">
         <button id="btn-start" class="btn primary" onclick="togglePlay()">
-          <span id="play-icon">▶</span> <span id="play-text">Iniciar Animación</span>
+          <span id="play-text">Iniciar Animación</span>
         </button>
-        <button id="btn-prev" class="btn" onclick="stepPrev()" disabled>⏮ Anterior</button>
-        <button id="btn-next" class="btn" onclick="stepNext()">Siguiente ⏭</button>
-        <button id="btn-reset" class="btn" onclick="resetState()">🔄 Reiniciar</button>
+        <button id="btn-prev" class="btn" onclick="stepPrev()" disabled>Anterior</button>
+        <button id="btn-next" class="btn" onclick="stepNext()">Siguiente</button>
+        <button id="btn-reset" class="btn" onclick="resetState()">Reiniciar</button>
 
         <div class="speed-control">
           <label for="speed-range">Velocidad:</label>
@@ -436,9 +436,9 @@ def construir_html_interactivo(
       <!-- Panel de Resultados Final -->
       <div id="results-panel" class="results-panel">
         <div class="results-header">
-          <span>✓ ¡Solución Óptima Encontrada y Verificada!</span>
+          <span>Solución Óptima Encontrada y Verificada</span>
           <button class="btn" onclick="switchTab('tree')" style="font-size:0.85rem; padding:0.4rem 0.8rem;">
-            🌳 Ver Árbol de Navegación
+            Ver Árbol de Navegación
           </button>
         </div>
         <div class="stats-grid">
@@ -462,22 +462,22 @@ def construir_html_interactivo(
       </div>
     </div>
 
-    <!-- PESTAÑA 2: ÁRBOL DE NAVEGACIÓN -->
+    <!-- PESTANA 2: ARBOL DE NAVEGACION -->
     <div id="tab-tree" class="tab-content">
       <div class="tree-section">
         <div class="tree-header">
           <div>
             <h2 style="font-size:1.3rem; margin-bottom:0.2rem;">Espacio de Estados (DAG de 72 Nodos)</h2>
             <p style="color:var(--text-muted); font-size:0.85rem;">
-              Estratificado en 16 niveles de profundidad (0 a 15). Haz clic en la imagen para hacer zoom.
+              Estratificado en 16 niveles de profundidad (0 a 15). Haz clic en la imagen para ampliar o reducir.
             </p>
           </div>
           <div class="tree-badges">
-            <span class="badge badge-init">■ Inicial (1)</span>
-            <span class="badge badge-opt">■ Ruta Óptima (14)</span>
-            <span class="badge badge-goal">■ Meta (1)</span>
-            <span class="badge badge-viable">■ Viables (14)</span>
-            <span class="badge badge-deadlock">■ Deadlocks (13)</span>
+            <span class="badge badge-init">Inicial (1)</span>
+            <span class="badge badge-opt">Ruta Óptima (14)</span>
+            <span class="badge badge-goal">Meta (1)</span>
+            <span class="badge badge-viable">Viables (14)</span>
+            <span class="badge badge-deadlock">Deadlocks (13)</span>
           </div>
         </div>
 
@@ -499,7 +499,6 @@ def construir_html_interactivo(
     const board = document.getElementById('board');
     const stepIndicator = document.getElementById('step-indicator');
     const moveDescription = document.getElementById('move-description');
-    const playIcon = document.getElementById('play-icon');
     const playText = document.getElementById('play-text');
     const btnPrev = document.getElementById('btn-prev');
     const btnNext = document.getElementById('btn-next');
@@ -593,7 +592,6 @@ def construir_html_interactivo(
 
     function play() {{
       isPlaying = true;
-      playIcon.innerText = '⏸';
       playText.innerText = 'Pausar';
       playTimer = setInterval(() => {{
         if (currentStep < DATA.ruta.length - 1) {{
@@ -607,7 +605,6 @@ def construir_html_interactivo(
 
     function pause() {{
       isPlaying = false;
-      playIcon.innerText = '▶';
       playText.innerText = 'Continuar';
       clearInterval(playTimer);
     }}
